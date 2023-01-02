@@ -30,11 +30,11 @@ gcloud compute networks subnets create kubernetes \
   --range 10.240.0.0/24
 ```
 
-> The `10.240.0.0/24` IP address range can host up to 254 compute instances.
+> The `10.240.0.0/24` IP address range can host up to 254 compute instances (not 255 because that includes the network id `10.240.0.0`).
 
 ### Firewall Rules
 
-Create a firewall rule that allows internal communication across all protocols:
+Create a firewall rule that allows internal communication across **all protocols**:
 
 ```
 gcloud compute firewall-rules create kubernetes-the-hard-way-allow-internal \
@@ -43,7 +43,9 @@ gcloud compute firewall-rules create kubernetes-the-hard-way-allow-internal \
   --source-ranges 10.240.0.0/24,10.200.0.0/16
 ```
 
-Create a firewall rule that allows external SSH, ICMP, and HTTPS:
+[Reason for `10.200.0.0/16`.](#kubernetes-workers)
+
+Create a firewall rule that allows external **SSH, ICMP, and HTTPS**:
 
 ```
 gcloud compute firewall-rules create kubernetes-the-hard-way-allow-external \
@@ -53,6 +55,11 @@ gcloud compute firewall-rules create kubernetes-the-hard-way-allow-external \
 ```
 
 > An [external load balancer](https://cloud.google.com/compute/docs/load-balancing/network/) will be used to expose the Kubernetes API Servers to remote clients.
+A network load balancer can receive traffic from:
+- Any client on the internet (on the specified ports tcp:22, tcp:6443 ...)
+- Google Cloud VMs with external IPs
+- Google Cloud VMs that have internet access through Cloud NAT or instance-based NAT
+
 
 List the firewall rules in the `kubernetes-the-hard-way` VPC network:
 
@@ -114,7 +121,7 @@ for i in 0 1 2; do
 done
 ```
 
-### Kubernetes Workers
+## Kubernetes Workers
 
 Each worker instance requires a pod subnet allocation from the Kubernetes cluster CIDR range. The pod subnet allocation will be used to configure container networking in a later exercise. The `pod-cidr` instance metadata will be used to expose pod subnet allocations to compute instances at runtime.
 
@@ -131,7 +138,7 @@ for i in 0 1 2; do
     --image-family ubuntu-2004-lts \
     --image-project ubuntu-os-cloud \
     --machine-type e2-standard-2 \
-    --metadata pod-cidr=10.200.${i}.0/24 \
+    --metadata pod-cidr=10.200.${i}.0/24 \ # to be used by pods when created on workers
     --private-network-ip 10.240.0.2${i} \
     --scopes compute-rw,storage-ro,service-management,service-control,logging-write,monitoring \
     --subnet kubernetes \

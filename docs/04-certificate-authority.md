@@ -142,7 +142,7 @@ cfssl gencert \
   -ca=ca.pem \
   -ca-key=ca-key.pem \
   -config=ca-config.json \
-  -hostname=${instance},${EXTERNAL_IP},${INTERNAL_IP} \
+  -hostname=${instance},${EXTERNAL_IP},${INTERNAL_IP} \ # list every possible hostname
   -profile=kubernetes \
   ${instance}-csr.json | cfssljson -bare ${instance}
 done
@@ -294,6 +294,10 @@ kube-scheduler.pem
 
 The `kubernetes-the-hard-way` static IP address will be included in the list of subject alternative names for the Kubernetes API Server certificate. This will ensure the certificate can be validated by remote clients.
 
+**Reason for 10.32.0.1** can be found [here](https://github.com/kelseyhightower/kubernetes-the-hard-way/issues/105) but is also explained clearly down below!
+
+The `KUBERNETES_PUBLIC_ADDRESS` [is the static IP created here](03-compute-resources.md#kubernetes-public-ip-address)
+
 Generate the Kubernetes API Server certificate and private key:
 
 ```
@@ -396,7 +400,7 @@ Copy the appropriate certificates and private keys to each worker instance:
 
 ```
 for instance in worker-0 worker-1 worker-2; do
-  gcloud compute scp ca.pem ${instance}-key.pem ${instance}.pem ${instance}:~/
+  gcloud compute scp ca.pem KubeletClientCertifcates/${instance}-key.pem ${instance}.pem ${instance}:~/
 done
 ```
 
@@ -404,11 +408,65 @@ Copy the appropriate certificates and private keys to each controller instance:
 
 ```
 for instance in controller-0 controller-1 controller-2; do
-  gcloud compute scp ca.pem ca-key.pem kubernetes-key.pem kubernetes.pem \
-    service-account-key.pem service-account.pem ${instance}:~/
+  gcloud compute scp ca.pem ca-key.pem KubeAPIServerCertificate/kubernetes-key.pem KubeAPIServerCertificate/kubernetes.pem \
+   ServiceAccountKeyPair/service-account-key.pem ServiceAccountKeyPair/service-account.pem ${instance}:~/
 done
 ```
 
 > The `kube-proxy`, `kube-controller-manager`, `kube-scheduler`, and `kubelet` client certificates will be used to generate client authentication configuration files in the next lab.
+
+I organized my files like this under the `CertificateAuthority` directory:
+```
+├── AdminClientCertificate
+│   ├── admin-csr.json
+│   ├── admin-key.pem
+│   ├── admin.csr
+│   └── admin.pem
+├── ControllerManagerClientCertificate
+│   ├── kube-controller-manager-csr.json
+│   ├── kube-controller-manager-key.pem
+│   ├── kube-controller-manager.csr
+│   └── kube-controller-manager.pem
+├── KubeAPIServerCertificate
+│   ├── kubernetes-csr.json
+│   ├── kubernetes-key.pem
+│   ├── kubernetes.csr
+│   └── kubernetes.pem
+├── KubeProxyClientCertificate
+│   ├── kube-proxy-csr.json
+│   ├── kube-proxy-key.pem
+│   ├── kube-proxy.csr
+│   └── kube-proxy.pem
+├── KubeletClientCertifcates
+│   ├── worker-0-csr.json
+│   ├── worker-0-key.pem
+│   ├── worker-0.csr
+│   ├── worker-0.pem
+│   ├── worker-1-csr.json
+│   ├── worker-1-key.pem
+│   ├── worker-1.csr
+│   ├── worker-1.pem
+│   ├── worker-2-csr.json
+│   ├── worker-2-key.pem
+│   ├── worker-2.csr
+│   └── worker-2.pem
+├── SchedulerClientCertificate
+│   ├── kube-scheduler-csr.json
+│   ├── kube-scheduler-key.pem
+│   ├── kube-scheduler.csr
+│   └── kube-scheduler.pem
+├── ServiceAccountKeyPair
+│   ├── service-account-csr.json
+│   ├── service-account-key.pem
+│   ├── service-account.csr
+│   └── service-account.pem
+├── ca-config.json
+├── ca-csr.json
+├── ca-key.pem
+├── ca.csr
+└── ca.pem
+```
+
+This requires appending `../` to the `cfssl gen-cert` commands for `ca.pem` and anything else that belongs to the Certificate Authority. The above commands also have to be modified because of this.
 
 Next: [Generating Kubernetes Configuration Files for Authentication](05-kubernetes-configuration-files.md)
