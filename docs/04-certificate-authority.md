@@ -352,6 +352,8 @@ kubernetes.pem
 
 The Kubernetes Controller Manager leverages a key pair to generate and sign service account tokens as described in the [managing service accounts](https://kubernetes.io/docs/admin/service-accounts-admin/) documentation.
 
+Service accounts are typically used to grant containers access to the Kubernetes API, allowing them to perform actions such as creating and modifying resources within the cluster. They can also be used to grant containers access to other resources, such as persistent volumes or external services (so we will be creating pods that actually talk to kubernetes in the boostrapping sections).
+
 Generate the `service-account` certificate and private key:
 
 ```

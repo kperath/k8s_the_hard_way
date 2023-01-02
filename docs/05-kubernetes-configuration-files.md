@@ -2,13 +2,15 @@
 
 In this lab you will generate [Kubernetes configuration files](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/), also known as kubeconfigs, which enable Kubernetes clients to locate and authenticate to the Kubernetes API Servers.
 
+A Kubeconfig is a YAML file with all the Kubernetes cluster details, certificate, and secret token to authenticate the cluster. You might get this config file directly from the cluster administrator or from a cloud platform if you are using managed Kubernetes cluster. When you use kubectl, it uses the information in the kubeconfig file to connect to the kubernetes cluster API.
+
 ## Client Authentication Configs
 
 In this section you will generate kubeconfig files for the `controller manager`, `kubelet`, `kube-proxy`, and `scheduler` clients and the `admin` user.
 
 ### Kubernetes Public IP Address
 
-Each kubeconfig requires a Kubernetes API Server to connect to. To support high availability the IP address assigned to the external load balancer fronting the Kubernetes API Servers will be used.
+Each kubeconfig requires a Kubernetes API Server to connect to. To support **high availability** the IP address assigned to the external load balancer fronting the Kubernetes API Servers will be used.
 
 Retrieve the `kubernetes-the-hard-way` static IP address:
 
@@ -199,7 +201,7 @@ Copy the appropriate `kubelet` and `kube-proxy` kubeconfig files to each worker 
 
 ```
 for instance in worker-0 worker-1 worker-2; do
-  gcloud compute scp ${instance}.kubeconfig kube-proxy.kubeconfig ${instance}:~/
+  gcloud compute scp KubeletClientCertifcates/controller-2.kubeconfig KubeProxyClientCertificate/kube-proxy.kubeconfig controller-2:~/
 done
 ```
 
@@ -207,7 +209,7 @@ Copy the appropriate `kube-controller-manager` and `kube-scheduler` kubeconfig f
 
 ```
 for instance in controller-0 controller-1 controller-2; do
-  gcloud compute scp admin.kubeconfig kube-controller-manager.kubeconfig kube-scheduler.kubeconfig ${instance}:~/
+  gcloud compute scp AdminClientCertificate/admin.kubeconfig ControllerManagerClientCertificate/kube-controller-manager.kubeconfig SchedulerClientCertificate/kube-scheduler.kubeconfig controller-2:~/
 done
 ```
 
