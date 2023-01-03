@@ -55,7 +55,8 @@ Install the Kubernetes binaries:
 }
 ```
 
-The instance internal IP address will be used to advertise the API Server to members of the cluster. Retrieve the internal IP address for the current compute instance:
+The instance internal IP address will be used to advertise the API Server to members of the cluster.
+Retrieve the internal IP address for the current compute instance:
 
 ```
 INTERNAL_IP=$(curl -s -H "Metadata-Flavor: Google" \
@@ -63,8 +64,13 @@ INTERNAL_IP=$(curl -s -H "Metadata-Flavor: Google" \
 ```
 
 ```
-REGION=$(curl -s -H "Metadata-Flavor: Google" \
-  http://metadata.google.internal/computeMetadata/v1/project/attributes/google-compute-default-region)
+REGION=$(curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/zone \
+| awk -F/ '{ print substr($4, 0, length($4)-2) }')
+```
+Also how to do it in `sed`:
+```
+REGION=$(curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/zone \
+| cut -d/ -f 4 | sed 's/.\{2\}$//')
 ```
 
 ```
@@ -213,7 +219,12 @@ EOF
 
 ### Enable HTTP Health Checks
 
-A [Google Network Load Balancer](https://cloud.google.com/compute/docs/load-balancing/network) will be used to distribute traffic across the three API servers and allow each API server to terminate TLS connections and validate client certificates. The network load balancer only supports HTTP health checks which means the HTTPS endpoint exposed by the API server cannot be used. As a workaround the nginx webserver can be used to proxy HTTP health checks. In this section nginx will be installed and configured to accept HTTP health checks on port `80` and proxy the connections to the API server on `https://127.0.0.1:6443/healthz`.
+A [Google Network Load Balancer](https://cloud.google.com/compute/docs/load-balancing/network) will be used to distribute traffic across the three API servers
+and allow each API server to terminate TLS connections and validate client certificates.
+The network load balancer only supports HTTP health checks which means the HTTPS endpoint
+exposed by the API server cannot be used. As a workaround the nginx webserver can be used to proxy HTTP health checks.
+In this section nginx will be installed and configured to accept HTTP health checks
+on port `80` and proxy the connections to the API server on `https://127.0.0.1:6443/healthz`.
 
 > The `/healthz` API server endpoint does not require authentication by default.
 
@@ -294,7 +305,7 @@ In this section you will configure RBAC permissions to allow the Kubernetes API 
 
 > This tutorial sets the Kubelet `--authorization-mode` flag to `Webhook`. Webhook mode uses the [SubjectAccessReview](https://kubernetes.io/docs/admin/authorization/#checking-api-access) API to determine authorization.
 
-The commands in this section will effect the entire cluster and only need to be run once from one of the controller nodes.
+The commands in this section will effect the entire cluster and only need to be run **once** from one of the controller nodes.
 
 ```
 gcloud compute ssh controller-0
@@ -326,7 +337,7 @@ rules:
 EOF
 ```
 
-The Kubernetes API Server authenticates to the Kubelet as the `kubernetes` user using the client certificate as defined by the `--kubelet-client-certificate` flag.
+The Kubernetes API Server authenticates to the Kubelet as the `kubernetes` user using the client certificate as defined by the `--kubelet-client-certificate` flag (in the `kube-apiserver.service` systemd unit file [here](#configure-the-kubernetes-api-server)).
 
 Bind the `system:kube-apiserver-to-kubelet` ClusterRole to the `kubernetes` user:
 
@@ -359,6 +370,17 @@ In this section you will provision an external load balancer to front the Kubern
 
 Create the external load balancer network resources:
 
+For the firewall rules from the [gcloud docs](https://cloud.google.com/load-balancing/docs/health-checks):
+    For network load balancers handling IPv4 traffic, you must allow health check probes from the following source IP address ranges:
+
+    For IPv4 traffic to the backends:
+        35.191.0.0/16
+        209.85.152.0/22
+        209.85.204.0/22
+
+Also a **target pool** needs to be created which is a group of servers or other resources that can be used as the destination for traffic in a load balancing system. Target pools are typically used in conjunction with load balancers to distribute incoming traffic across multiple servers or resources, in order to improve the performance, reliability, and scalability of the system.
+In a load balancing system, a target pool is typically configured with a set of servers or resources that are capable of handling incoming traffic, and the load balancer is configured to distribute incoming traffic across the target pool. The load balancer uses various algorithms and rules to determine which server or resource in the target pool should receive each incoming request, based on factors such as the availability of the servers, the workload on the servers, and the specific characteristics of the incoming traffic.
+
 ```
 {
   KUBERNETES_PUBLIC_ADDRESS=$(gcloud compute addresses describe kubernetes-the-hard-way \
@@ -388,6 +410,14 @@ Create the external load balancer network resources:
     --target-pool kubernetes-target-pool
 }
 ```
+
+Need the forwarding rules to direct the traffic to our instances (the target pool):
+   `--target-pool`=TARGET_POOL
+      Target pool that receives the traffic. The target pool must be in the
+      same region as the forwarding rule. Global forwarding rules cannot
+      direct traffic to target pools.
+      
+Can verify the instances added to the target pool with: `gcloud compute target-pools describe kubernetes-target-pool`
 
 ### Verification
 
