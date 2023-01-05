@@ -57,7 +57,9 @@ Delete the `kubernetes-the-hard-way` network VPC:
 
 Delete the `kubernetes-the-hard-way` compute address:
 
+**NOTE:** Not required since this gets deleted after you delete the external load balancer network resources [here](#networking) ([source](https://github.com/kelseyhightower/kubernetes-the-hard-way/issues/684))
 ```
 gcloud -q compute addresses delete kubernetes-the-hard-way \
   --region $(gcloud config get-value compute/region)
 ```
+

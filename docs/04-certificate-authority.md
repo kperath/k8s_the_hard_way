@@ -402,7 +402,7 @@ Copy the appropriate certificates and private keys to each worker instance:
 
 ```
 for instance in worker-0 worker-1 worker-2; do
-  gcloud compute scp ca.pem KubeletClientCertifcates/${instance}-key.pem ${instance}.pem ${instance}:~/
+  gcloud compute scp ca.pem KubeletClientCertifcates/${instance}-key.pem KubeletClientCertifcates/${instance}.pem ${instance}:~/
 done
 ```
 

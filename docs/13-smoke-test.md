@@ -55,6 +55,11 @@ gcloud compute ssh controller-0 \
 
 The etcd key should be prefixed with `k8s:enc:aescbc:v1:key1`, which indicates the `aescbc` provider was used to encrypt the data with the `key1` encryption key.
 
+ `aescbc` refers to the **AES-CBC** (Advanced Encryption Standard - Cipher Block Chaining) encryption algorithm, which is a widely used symmetric encryption algorithm. The "key1" encryption key is the specific key that was used to encrypt the data using the AES-CBC algorithm.
+The AES-CBC algorithm works by dividing the plaintext data into blocks, and then using a key to encrypt each block using a modified version of the block cipher algorithm. The encrypted blocks are then concatenated to form the ciphertext.
+The **key1** encryption key is a secret value that is used to encrypt and decrypt the data. It is essential that the key is kept secure, as anyone with access to the key can decrypt the data.
+In general, when data is encrypted using a key, it means that the data has been transformed into a form that is unreadable without the key. The encrypted data can only be decrypted using the same key that was used to encrypt it. This provides a layer of security, as it ensures that only authorized parties with access to the key can read the data.
+
 ## Deployments
 
 In this section you will verify the ability to create and manage [Deployments](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/).
@@ -101,11 +106,13 @@ Forwarding from 127.0.0.1:8080 -> 80
 Forwarding from [::1]:8080 -> 80
 ```
 
-In a new terminal make an HTTP request using the forwarding address:
+In a new terminal make an HTTP request using the forwarding address (or go to localhost:8080 in your browser):
 
 ```
 curl --head http://127.0.0.1:8080
 ```
+
+`--head` just gives you the header information about the server instead of the "Hello from Nginx" text
 
 > output
 
@@ -160,7 +167,7 @@ kubectl exec -ti $POD_NAME -- nginx -v
 > output
 
 ```
-nginx version: nginx/1.19.10
+nginx version: nginx/1.23.3
 ```
 
 ## Services
